@@ -1,0 +1,49 @@
+🔹 Programar Arduino desde Terminal
+
+
+1️⃣ Situarse en el directorio del archivo
+* Abre la terminal y navega al directorio donde está tu sketch de Arduino:
+
+cd /ruta/del/sketch
+
+2️⃣ Compilar el archivo para la placa deseada
+* Usa el comando:
+
+arduino-cli compile --fqbn adafruit:nrf52:sparkfunnrf52840mini .
+
+* Explicación:
+    * --fqbn → nombre completo de la placa (FQBN)
+    * . → indica el directorio actual donde está el sketch
+
+3️⃣ Ver los puertos serie disponibles
+* Lista los puertos conectados:
+
+arduino-cli board list
+
+* Esto te mostrará algo como:
+
+/dev/cu.usbmodemXXXX  SparkFun nRF52840 Mini
+
+4️⃣ Subir el archivo al Arduino
+* Usa el puerto correcto mostrado en el paso anterior:
+
+arduino-cli upload -p /dev/cu.usbmodemXXXX --fqbn adafruit:nrf52:sparkfunnrf52840mini 
+arduino-cli upload -p /dev/cu.usbmodem2101 --fqbn adafruit:nrf52:sparkfunnrf52840mini --verbose
+
+
+
+4️⃣ Ver el puerto serie
+
+screen /dev/cu.usbmodem2101 115200
+
+—Esto es el puerto cu.usbmodem2101
+—115200 esto son los baudios
+
+* Para salir de screen: presiona Ctrl + A, luego K, y confirma con Y.
+
+
+🔹 Tips
+
+* Asegúrate de tener la placa conectada antes de compilar o subir el sketch.
+* Puedes usar arduino-cli board list después de conectar la placa para confirmar el puerto.
+* Para cambiar de placa, solo cambia el --fqbn correspondiente.
