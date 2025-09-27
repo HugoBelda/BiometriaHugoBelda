@@ -1,6 +1,7 @@
 # 🌡️ Proyecto Biometría: Arduino + Android + FastAPI
 
-Un sistema IoT para capturar, procesar y visualizar datos biométricos en tiempo real.
+Un sistema IoT para capturar, procesar y visualizar datos de concentración de gases en tiempo real.
+
 ## 📝 Descripción
 Sistema IoT que integra un Arduino para capturar mediciones de sensores, enviadas vía Bluetooth Low Energy (BLE Beacon) a un dispositivo Android. La app Android actúa como cliente, reenviando los datos por HTTP a una API REST desarrollada con FastAPI. Los datos se almacenan en una base de datos SQLite y se visualizan en una interfaz web dinámica creada con HTML+JavaScript.
 ## 🚀 Flujo del Sistema
