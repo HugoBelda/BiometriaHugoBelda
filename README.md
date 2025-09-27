@@ -15,6 +15,7 @@ Diagrama del flujo:
 Arduino (Sensor) → Android (BLE → HTTP) → API REST (FastAPI) → SQLite → Web (HTML+JS)
 
 ## 📂 Estructura del Proyecto
+```plaintext
 proyecto/
 ├── 📁 docs/            # PDFs con documentación de android, arduino y web
 ├── 📁 src/             # Código fuente del proyecto
