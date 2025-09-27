@@ -14,9 +14,6 @@ Web: Muestra los datos en una interfaz HTML+JS.
 Diagrama del flujo:
 Arduino (Sensor) → Android (BLE → HTTP) → API REST (FastAPI) → SQLite → Web (HTML+JS)
 
-
----
-
 ## 📂 Estructura del Proyecto
 ```plaintext
 proyecto/
@@ -26,8 +23,7 @@ proyecto/
 │   ├── 📁 arduino/     # Código para el beacon BLE en Arduino
 │   └── 📁 web/         # Servidor FastAPI y frontend web
 └── 📜 README.md        # Documentación del proyecto
-
----
+```
 
 ## 🌐 Endpoints de la API
 1. Guardar Medición
