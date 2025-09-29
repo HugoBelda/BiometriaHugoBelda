@@ -12,7 +12,10 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.util.Log;
+import android.view.Menu;
 import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -25,7 +28,8 @@ import java.util.List;
 // ------------------------------------------------------------------
 
 public class MainActivity extends AppCompatActivity {
-
+    private TextView elTexto;
+    private Button elBotonEnviar;
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private static final String ETIQUETA_LOG = ">>>>";
@@ -51,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
                 super.onScanResult(callbackType, resultado);
                 Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onScanResult() ");
 
-                mostrarInformacionDispositivoBTLE( resultado );
+                mostrarYEnviarInformacionDispositivosBTLE( resultado );
             }
 
             @Override
@@ -143,6 +147,62 @@ public class MainActivity extends AppCompatActivity {
 
     } // ()
 
+    private void mostrarYEnviarInformacionDispositivosBTLE(ScanResult resultado) {
+
+        BluetoothDevice bluetoothDevice = resultado.getDevice();
+        byte[] bytes = resultado.getScanRecord().getBytes();
+        int rssi = resultado.getRssi();
+
+        TramaIBeacon tib = new TramaIBeacon(bytes);
+
+        String uuid = Utilidades.bytesToString(tib.getUUID());
+        int major = Utilidades.bytesToInt(tib.getMajor());
+        int minor = Utilidades.bytesToInt(tib.getMinor());
+
+        // Descomponer major
+        int id = (major >> 8) & 0xFF;      // 8 bits altos → ID
+        int contador = major & 0xFF;       // 8 bits bajos → contador
+
+        // Interpretar ID
+        String tipoMedicion;
+        if (id == 12) {
+            tipoMedicion = "Temperatura";
+        } else if (id == 11) {
+            tipoMedicion = "CO2";
+        } else {
+            tipoMedicion = "Desconocido";
+        }
+
+        Log.d(ETIQUETA_LOG, "UUID=" + uuid
+                + " tipo=" + tipoMedicion
+                + " contador=" + contador
+                + " valor=" + minor
+                + " rssi=" + rssi);
+
+        // Construimos JSON para la API
+        String jsonBody = "{"
+                + "\"uuid\":\"" + uuid + "\","
+                + "\"tipo\":\"" + tipoMedicion + "\","
+                + "\"valor\":" + minor + ","
+                + "\"rssi\":" + rssi
+                + "}";
+
+        // Enviar a la API
+        PeticionarioREST peti = new PeticionarioREST();
+        peti.hacerPeticionREST(
+                "POST",
+                "http://TU_API:8000/rest/guardar",
+                jsonBody,
+                new PeticionarioREST.RespuestaREST() {
+                    @Override
+                    public void callback(int codigo, String cuerpo) {
+                        Log.d("API", "respuesta=" + codigo + " -> " + cuerpo);
+                        runOnUiThread(() -> elTexto.setText("Último envío: " + codigo));
+                    }
+                }
+        );
+    }
+
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private void buscarEsteDispositivoBTLE(final String dispositivoBuscado) {
@@ -154,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
             public void onScanResult(int callbackType, ScanResult resultado) {
                 super.onScanResult(callbackType, resultado);
                 Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onScanResult()");
-                mostrarInformacionDispositivoBTLE(resultado);
+                mostrarYEnviarInformacionDispositivosBTLE(resultado);
             }
 
             @Override
@@ -229,7 +289,6 @@ public class MainActivity extends AppCompatActivity {
     public void botonBuscarNuestroDispositivoBTLEPulsado( View v ) {
         Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
         //this.buscarEsteDispositivoBTLE( Utilidades.stringToUUID( "EPSG-GTI-PROY-3A" ) );
-
         //this.buscarEsteDispositivoBTLE( "EPSG-GTI-PROY-3A" );
         this.buscarEsteDispositivoBTLE( "GTI-3A" );
 
@@ -287,6 +346,31 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void boton_enviar_pulsado (View quien) {
+        Log.d("clienterestandroid", "boton_enviar_pulsado");
+        this.elTexto.setText("pulsado");
+
+        // ojo: creo que hay que crear uno nuevo cada vez
+        PeticionarioREST elPeticionario = new PeticionarioREST();
+
+        elPeticionario.hacerPeticionREST("GET",  "http://158.42.144.126:8080/prueba", null,
+                new PeticionarioREST.RespuestaREST () {
+                    @Override
+                    public void callback(int codigo, String cuerpo) {
+                        elTexto.setText ("codigo respuesta= " + codigo + " <-> \n" + cuerpo);
+                    }
+                }
+        );
+
+        // (int codigo, String cuerpo) -> { elTexto.setText ("lo que sea"=; }
+
+        String elDni = "12345678A";
+        String textoJSON = "{ 'dni': '" + elDni + "' }";
+
+
+    } // pulsado (
+
+
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     @Override
@@ -298,7 +382,13 @@ public class MainActivity extends AppCompatActivity {
 
         inicializarBlueTooth();
 
+        this.elTexto = (TextView) findViewById(R.id.elTexto);
+        this.elBotonEnviar = (Button) findViewById(R.id.botonEnviar);
+
+
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
+
+
 
     } // onCreate()
 
@@ -333,5 +423,6 @@ public class MainActivity extends AppCompatActivity {
 // --------------------------------------------------------------
 // --------------------------------------------------------------
 // --------------------------------------------------------------
+
 
 
