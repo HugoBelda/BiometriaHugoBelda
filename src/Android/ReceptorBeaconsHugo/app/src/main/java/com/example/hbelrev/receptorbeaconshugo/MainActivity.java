@@ -10,9 +10,7 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.ParcelUuid;
 import android.util.Log;
-import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -29,6 +27,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private TextView elTexto;
+    private TextView datosEnviados; // Nuevo TextView para mostrar datos enviados
     private Button elBotonEnviar;
     // --------------------------------------------------------------
     // --------------------------------------------------------------
@@ -42,6 +41,9 @@ public class MainActivity extends AppCompatActivity {
 
     private ScanCallback callbackDelEscaneo = null;
 
+    private LogicaFake logicaFake;  // Instancia de tu lógica
+
+    private static final String URL_SERVIDOR = "http://192.168.1.103:8000/api/guardar";  // URL de tu API
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private void buscarTodosLosDispositivosBTLE() {
@@ -55,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
                 super.onScanResult(callbackType, resultado);
                 Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onScanResult() ");
 
-                mostrarYEnviarInformacionDispositivosBTLE( resultado );
+                mostrarInformacionDispositivoBTLE( resultado );
             }
 
             @Override
@@ -157,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
 
         String uuid = Utilidades.bytesToString(tib.getUUID());
         int major = Utilidades.bytesToInt(tib.getMajor());
-        int minor = Utilidades.bytesToInt(tib.getMinor());
+        float minor = Utilidades.bytesToInt(tib.getMinor());
 
         // Descomponer major
         int id = (major >> 8) & 0xFF;      // 8 bits altos → ID
@@ -179,28 +181,24 @@ public class MainActivity extends AppCompatActivity {
                 + " valor=" + minor
                 + " rssi=" + rssi);
 
+        enviarDatos(uuid, tipoMedicion, minor, rssi);
+    }
+
+    private void enviarDatos(String uuid, String tipo, float valor, int rssi) {
+        // Actualizar TextView con los datos enviados
+        String datos = String.format("Datos enviados:\nUUID: %s\nTipo: %s\nValor: %d\nRSSI: %d", uuid, tipo, valor, rssi);
+        this.datosEnviados.setText(datos);
+
         // Construimos JSON para la API
         String jsonBody = "{"
-                + "\"uuid\":\"" + uuid + "\","
-                + "\"tipo\":\"" + tipoMedicion + "\","
-                + "\"valor\":" + minor + ","
-                + "\"rssi\":" + rssi
+               // + "\"uuid\":\"" + uuid + "\","
+                + "\"tipo\":\"" + tipo + "\","
+                + "\"valor\":" + valor + ","
+             //   + "\"rssi\":" + rssi
                 + "}";
 
-        // Enviar a la API
-        PeticionarioREST peti = new PeticionarioREST();
-        peti.hacerPeticionREST(
-                "POST",
-                "http://TU_API:8000/rest/guardar",
-                jsonBody,
-                new PeticionarioREST.RespuestaREST() {
-                    @Override
-                    public void callback(int codigo, String cuerpo) {
-                        Log.d("API", "respuesta=" + codigo + " -> " + cuerpo);
-                        runOnUiThread(() -> elTexto.setText("Último envío: " + codigo));
-                    }
-                }
-        );
+        logicaFake.guardarMedicion(jsonBody, URL_SERVIDOR);
+        this.elTexto.setText("Envío en progreso...");
     }
 
     // --------------------------------------------------------------
@@ -290,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
         //this.buscarEsteDispositivoBTLE( Utilidades.stringToUUID( "EPSG-GTI-PROY-3A" ) );
         //this.buscarEsteDispositivoBTLE( "EPSG-GTI-PROY-3A" );
-        this.buscarEsteDispositivoBTLE( "GTI-3A" );
+        this.buscarEsteDispositivoBTLE( "HugoBeacon" );
 
     } // ()
     // --------------------------------------------------------------
@@ -346,29 +344,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void boton_enviar_pulsado (View quien) {
-        Log.d("clienterestandroid", "boton_enviar_pulsado");
-        this.elTexto.setText("pulsado");
+   /* public void boton_enviar_pulsado (View quien) {
+        Log.d(ETIQUETA_LOG, "boton_enviar_pulsado: simulando envío REST con JSON fake");
+        this.elTexto.setText("Enviando simulado...");
 
-        // ojo: creo que hay que crear uno nuevo cada vez
-        PeticionarioREST elPeticionario = new PeticionarioREST();
+        // Simular datos
+        String uuid = "1234-5678-9012-3456";
+        String tipo = "Temperatura";
+        int valor = 25;
+        int rssi = -60;
 
-        elPeticionario.hacerPeticionREST("GET",  "http://158.42.144.126:8080/prueba", null,
-                new PeticionarioREST.RespuestaREST () {
-                    @Override
-                    public void callback(int codigo, String cuerpo) {
-                        elTexto.setText ("codigo respuesta= " + codigo + " <-> \n" + cuerpo);
-                    }
-                }
-        );
+        enviarDatos(uuid, tipo, valor, rssi);
+    } // ()*/
 
-        // (int codigo, String cuerpo) -> { elTexto.setText ("lo que sea"=; }
-
-        String elDni = "12345678A";
-        String textoJSON = "{ 'dni': '" + elDni + "' }";
-
-
-    } // pulsado (
+    public void boton_enviar_pulsado(View quien) {
+        Log.d(ETIQUETA_LOG, "boton_enviar_pulsado: iniciando escaneo de dispositivo real");
+        this.elTexto.setText("Buscando dispositivo...");
+        buscarEsteDispositivoBTLE("HugoBeacon");
+    }
 
 
     // --------------------------------------------------------------
@@ -380,16 +373,18 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(ETIQUETA_LOG, " onCreate(): empieza ");
 
+        this.logicaFake = new LogicaFake();
+
         inicializarBlueTooth();
 
         this.elTexto = (TextView) findViewById(R.id.elTexto);
+        this.datosEnviados = (TextView) findViewById(R.id.datosEnviados); // Inicializar nuevo TextView
         this.elBotonEnviar = (Button) findViewById(R.id.botonEnviar);
 
+        // Para iniciar escaneo automáticamente, descomenta:
+        // buscarEsteDispositivoBTLE("GTI-3A");
 
         Log.d(ETIQUETA_LOG, " onCreate(): termina ");
-
-
-
     } // onCreate()
 
     // --------------------------------------------------------------
@@ -405,8 +400,9 @@ public class MainActivity extends AppCompatActivity {
                         grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                     Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): permisos concedidos  !!!!");
-                    // Permission is granted. Continue the action or workflow
-                    // in your app.
+                    inicializarBlueTooth();
+                    // Para iniciar escaneo automáticamente, descomenta:
+                    // buscarEsteDispositivoBTLE("GTI-3A");
                 }  else {
 
                     Log.d(ETIQUETA_LOG, " onRequestPermissionResult(): Socorro: permisos NO concedidos  !!!!");
@@ -423,6 +419,3 @@ public class MainActivity extends AppCompatActivity {
 // --------------------------------------------------------------
 // --------------------------------------------------------------
 // --------------------------------------------------------------
-
-
-
