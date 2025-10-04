@@ -6,11 +6,13 @@
 // Última modificación: 30/09/2025
 // =================================================
 
-// ---------------------------------------------------
-// ultimaMedicion(cb)
-// Llama al endpoint /api/ultima
-// ---------------------------------------------------
-function ultimaMedicion(cb) {
-    llamar("/api/ultima", {}, cb);
-  }
-  
+// -------------------------------------------------
+// ultimaMedicion() -> Promise
+// Descripción:
+//     Devuelve la última medición desde el servidor
+// Salida:
+//     Promise que resuelve con la medida
+// -------------------------------------------------
+function ultimaMedicion() {
+  return llamar("/api/ultima", {});
+}
