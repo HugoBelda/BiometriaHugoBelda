@@ -1,8 +1,28 @@
 package com.example.hbelrev.receptorbeaconshugo;
+
 import android.util.Log;
 
+/**
+ * =================================================
+ * Clase: LogicaFake
+ * Autor: Hugo Belda Revert
+ * =================================================
+ */
 public class LogicaFake {
 
+    // -------------------------------------------------
+    //
+    // guardarMedicion(jsonMedida, urlServidor) -> void
+    //
+    // Entrada:
+    //     jsonMedida: String -> medición en formato JSON
+    //     urlServidor: String -> URL del servidor al que enviar la medición
+    //
+    // Salida: ninguna
+    // Efecto:
+    //     Hace una petición HTTP POST al servidor usando PeticionarioREST.
+    //
+    // -------------------------------------------------
     public void guardarMedicion(String jsonMedida, String urlServidor) {
         PeticionarioREST elPeticionario = new PeticionarioREST();
 

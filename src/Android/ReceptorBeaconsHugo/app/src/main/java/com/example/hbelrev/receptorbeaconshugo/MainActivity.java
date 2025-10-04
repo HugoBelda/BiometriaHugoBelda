@@ -22,75 +22,21 @@ import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.List;
 
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
-
 public class MainActivity extends AppCompatActivity {
     private TextView elTexto;
-    private TextView datosEnviados; // Nuevo TextView para mostrar datos enviados
+    private TextView datosEnviados; // TextView para mostrar datos enviados
     private Button elBotonEnviar;
+    private boolean datoEnviado = false;
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private static final String ETIQUETA_LOG = ">>>>";
-
     private static final int CODIGO_PETICION_PERMISOS = 11223344;
-
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private BluetoothLeScanner elEscanner;
-
     private ScanCallback callbackDelEscaneo = null;
-
-    private LogicaFake logicaFake;  // Instancia de tu lógica
-
-    private static final String URL_SERVIDOR = "http://192.168.1.103:8000/api/guardar";  // URL de tu API
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
-    private void buscarTodosLosDispositivosBTLE() {
-        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): empieza ");
-
-        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): instalamos scan callback ");
-
-        this.callbackDelEscaneo = new ScanCallback() {
-            @Override
-            public void onScanResult( int callbackType, ScanResult resultado ) {
-                super.onScanResult(callbackType, resultado);
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onScanResult() ");
-
-                mostrarInformacionDispositivoBTLE( resultado );
-            }
-
-            @Override
-            public void onBatchScanResults(List<ScanResult> results) {
-                super.onBatchScanResults(results);
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onBatchScanResults() ");
-
-            }
-
-            @Override
-            public void onScanFailed(int errorCode) {
-                super.onScanFailed(errorCode);
-                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onScanFailed() ");
-
-            }
-        };
-
-        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): empezamos a escanear ");
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        this.elEscanner.startScan( this.callbackDelEscaneo);
-
-    } // ()
-
+    private LogicaFake logicaFake;
+    private static final String URL_SERVIDOR = "http://192.168.1.103:8000/api/guardar";  // URL del API
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private void mostrarInformacionDispositivoBTLE( ScanResult resultado ) {
@@ -103,28 +49,12 @@ public class MainActivity extends AppCompatActivity {
         Log.d(ETIQUETA_LOG, " ****** DISPOSITIVO DETECTADO BTLE ****************** ");
         Log.d(ETIQUETA_LOG, " ****************************************************");
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return;
         }
         Log.d(ETIQUETA_LOG, " nombre = " + bluetoothDevice.getName());
         Log.d(ETIQUETA_LOG, " toString = " + bluetoothDevice.toString());
-
-        /*
-        ParcelUuid[] puuids = bluetoothDevice.getUuids();
-        if ( puuids.length >= 1 ) {
-            //Log.d(ETIQUETA_LOG, " uuid = " + puuids[0].getUuid());
-           // Log.d(ETIQUETA_LOG, " uuid = " + puuids[0].toString());
-        }*/
-
         Log.d(ETIQUETA_LOG, " dirección = " + bluetoothDevice.getAddress());
         Log.d(ETIQUETA_LOG, " rssi = " + rssi );
-
         Log.d(ETIQUETA_LOG, " bytes = " + new String(bytes));
         Log.d(ETIQUETA_LOG, " bytes (" + bytes.length + ") = " + Utilidades.bytesToHexString(bytes));
 
@@ -149,23 +79,31 @@ public class MainActivity extends AppCompatActivity {
 
     } // ()
 
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    /**
+     * Procesa la información de un Beacon,
+     * extrae sus datos (UUID, Major, Minor, RSSI), interpreta el tipo de medición
+     * y envía la información a otra parte del sistema.
+     */
     private void mostrarYEnviarInformacionDispositivosBTLE(ScanResult resultado) {
 
         BluetoothDevice bluetoothDevice = resultado.getDevice();
         byte[] bytes = resultado.getScanRecord().getBytes();
         int rssi = resultado.getRssi();
 
+        // Creamos un objeto TramaIBeacon para interpretar los datos de la trama
         TramaIBeacon tib = new TramaIBeacon(bytes);
 
+        // Convertimos los campos del Beacon
         String uuid = Utilidades.bytesToString(tib.getUUID());
         int major = Utilidades.bytesToInt(tib.getMajor());
         float minor = Utilidades.bytesToInt(tib.getMinor());
 
-        // Descomponer major
-        int id = (major >> 8) & 0xFF;      // 8 bits altos → ID
-        int contador = major & 0xFF;       // 8 bits bajos → contador
+        // Descomponemos el campo 'major' en dos bytes:
+        int id = (major >> 8) & 0xFF;      // Extrae los bits altos → ID
+        int contador = major & 0xFF;       // Extrae los bits bajos → contador
 
-        // Interpretar ID
         String tipoMedicion;
         if (id == 12) {
             tipoMedicion = "Temperatura";
@@ -181,76 +119,103 @@ public class MainActivity extends AppCompatActivity {
                 + " valor=" + minor
                 + " rssi=" + rssi);
 
+        // Enviamos los datos
         enviarDatos(uuid, tipoMedicion, minor, rssi);
     }
 
+    // -------------------------------------------------
+    // -------------------------------------------------
+    /**
+     * Construye un objeto JSON con los datos del sensor,
+     * actualiza el TextView para mostrar lo enviado,
+     * y llama a LogicaFake.guardarMedicion() para simular o realizar
+     * el envío de los datos al servidor.
+     */
     private void enviarDatos(String uuid, String tipo, float valor, int rssi) {
-        // Actualizar TextView con los datos enviados
-        String datos = String.format("Datos enviados:\nUUID: %s\nTipo: %s\nValor: %d\nRSSI: %d", uuid, tipo, valor, rssi);
+
+        // Formateamos un texto con la información que se va a enviar
+        String datos = String.format(
+                "Datos enviados:\nTipo: %s\nValor: %.2f",
+                tipo, valor
+        );
+
         this.datosEnviados.setText(datos);
 
-        // Construimos JSON para la API
+        // Construimos el cuerpo JSON con los datos de medición
+        // que se enviarán al servidor o sistema de almacenamiento.
         String jsonBody = "{"
-               // + "\"uuid\":\"" + uuid + "\","
                 + "\"tipo\":\"" + tipo + "\","
-                + "\"valor\":" + valor + ","
-             //   + "\"rssi\":" + rssi
+                + "\"valor\":" + valor
                 + "}";
 
+        // Llamamos al método que realiza el envío de datos
         logicaFake.guardarMedicion(jsonBody, URL_SERVIDOR);
+
         this.elTexto.setText("Envío en progreso...");
     }
 
     // --------------------------------------------------------------
     // --------------------------------------------------------------
+    /**
+     * Inicia la búsqueda de un dispositivo BTLE específico,
+     * configurando filtros, ajustes de escaneo y callbacks para procesar los resultados.
+     */
     private void buscarEsteDispositivoBTLE(final String dispositivoBuscado) {
         Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): empieza");
 
-        // Creamos el callback
+        // Bloqueamos el botón de envío mientras se realiza el escaneo
+        this.elBotonEnviar.setEnabled(false);
+
+        // Definimos el callback que manejará los resultados del escaneo
         this.callbackDelEscaneo = new ScanCallback() {
+
             @Override
             public void onScanResult(int callbackType, ScanResult resultado) {
                 super.onScanResult(callbackType, resultado);
-                Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onScanResult()");
-                mostrarYEnviarInformacionDispositivosBTLE(resultado);
+
+                // Evitamos enviar datos múltiples veces por el mismo escaneo
+                if (!datoEnviado) {
+                    datoEnviado = true;
+                    mostrarYEnviarInformacionDispositivosBTLE(resultado);
+                    detenerBusquedaDispositivosBTLE();
+                    elBotonEnviar.setEnabled(true);
+                }
             }
 
             @Override
             public void onBatchScanResults(List<ScanResult> results) {
                 super.onBatchScanResults(results);
-                Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onBatchScanResults()");
             }
 
             @Override
             public void onScanFailed(int errorCode) {
                 super.onScanFailed(errorCode);
                 Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): onScanFailed() " + errorCode);
+                elBotonEnviar.setEnabled(true);
             }
         };
 
-        // Creamos filtro por nombre
+        // Creamos una lista de filtros para buscar solo el dispositivo deseado por nombre
         List<ScanFilter> filtros = new ArrayList<>();
         filtros.add(new ScanFilter.Builder()
                 .setDeviceName(dispositivoBuscado)
                 .build());
 
-        // Configuración de escaneo
         ScanSettings settings = new ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 .build();
 
-        // Verificamos permisos
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): permisos de escaneo no concedidos");
+        // Verificamos permisos BLUETOOTH_SCAN (necesarios desde Android 12 - API 31)
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED &&
+                android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            Log.d(ETIQUETA_LOG, "Permisos BLUETOOTH_SCAN no concedidos");
             return;
         }
 
-        // Iniciamos escaneo con filtros
         this.elEscanner.startScan(filtros, settings, callbackDelEscaneo);
 
         Log.d(ETIQUETA_LOG, "buscarEsteDispositivoBTLE(): escaneando dispositivo -> " + dispositivoBuscado);
     }
-
 
     // --------------------------------------------------------------
     // --------------------------------------------------------------
@@ -261,13 +226,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return;
         }
         this.elEscanner.stopScan( this.callbackDelEscaneo );
@@ -275,22 +233,6 @@ public class MainActivity extends AppCompatActivity {
 
     } // ()
 
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
-    public void botonBuscarDispositivosBTLEPulsado( View v ) {
-        Log.d(ETIQUETA_LOG, " boton buscar dispositivos BTLE Pulsado" );
-        this.buscarTodosLosDispositivosBTLE();
-    } // ()
-
-    // --------------------------------------------------------------
-    // --------------------------------------------------------------
-    public void botonBuscarNuestroDispositivoBTLEPulsado( View v ) {
-        Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
-        //this.buscarEsteDispositivoBTLE( Utilidades.stringToUUID( "EPSG-GTI-PROY-3A" ) );
-        //this.buscarEsteDispositivoBTLE( "EPSG-GTI-PROY-3A" );
-        this.buscarEsteDispositivoBTLE( "HugoBeacon" );
-
-    } // ()
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     public void botonDetenerBusquedaDispositivosBTLEPulsado( View v ) {
@@ -303,11 +245,22 @@ public class MainActivity extends AppCompatActivity {
     private void inicializarBlueTooth() {
         Log.d(ETIQUETA_LOG, "inicializarBlueTooth(): revisando permisos");
 
-        String[] permisos = {
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.ACCESS_FINE_LOCATION
-        };
+        String[] permisos;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            // Android 12 o superior
+            permisos = new String[]{
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT
+            };
+        } else {
+            // Android 10 y 11
+            permisos = new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.BLUETOOTH,
+                    Manifest.permission.BLUETOOTH_ADMIN
+            };
+        }
 
         boolean permisosConcedidos = true;
         for (String p : permisos) {
@@ -320,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
         if (!permisosConcedidos) {
             Log.d(ETIQUETA_LOG, "inicializarBlueTooth(): solicitando permisos");
             ActivityCompat.requestPermissions(this, permisos, CODIGO_PETICION_PERMISOS);
-            return; // Salimos y volveremos a inicializar tras conceder permisos
+            return;
         }
 
         // Si llegamos aquí, tenemos permisos
@@ -344,25 +297,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-   /* public void boton_enviar_pulsado (View quien) {
-        Log.d(ETIQUETA_LOG, "boton_enviar_pulsado: simulando envío REST con JSON fake");
-        this.elTexto.setText("Enviando simulado...");
-
-        // Simular datos
-        String uuid = "1234-5678-9012-3456";
-        String tipo = "Temperatura";
-        int valor = 25;
-        int rssi = -60;
-
-        enviarDatos(uuid, tipo, valor, rssi);
-    } // ()*/
-
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
     public void boton_enviar_pulsado(View quien) {
+        datoEnviado = false; // reiniciar flag
         Log.d(ETIQUETA_LOG, "boton_enviar_pulsado: iniciando escaneo de dispositivo real");
         this.elTexto.setText("Buscando dispositivo...");
-        buscarEsteDispositivoBTLE("HugoBeacon");
+        buscarEsteDispositivoBTLE("HugoBelda");
     }
-
 
     // --------------------------------------------------------------
     // --------------------------------------------------------------
@@ -414,8 +356,89 @@ public class MainActivity extends AppCompatActivity {
         // permissions this app might request.
     } // ()
 
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    private void buscarTodosLosDispositivosBTLE() {
+        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): empieza ");
+
+        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): instalamos scan callback ");
+
+        this.callbackDelEscaneo = new ScanCallback() {
+            @Override
+            public void onScanResult( int callbackType, ScanResult resultado ) {
+                super.onScanResult(callbackType, resultado);
+                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onScanResult() ");
+
+                mostrarInformacionDispositivoBTLE( resultado );
+            }
+
+            @Override
+            public void onBatchScanResults(List<ScanResult> results) {
+                super.onBatchScanResults(results);
+                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onBatchScanResults() ");
+
+            }
+
+            @Override
+            public void onScanFailed(int errorCode) {
+                super.onScanFailed(errorCode);
+                Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): onScanFailed() ");
+
+            }
+        };
+
+        Log.d(ETIQUETA_LOG, " buscarTodosLosDispositivosBTL(): empezamos a escanear ");
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        this.elEscanner.startScan( this.callbackDelEscaneo);
+
+    } // ()
+
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    public void botonBuscarDispositivosBTLEPulsado( View v ) {
+        Log.d(ETIQUETA_LOG, " boton buscar dispositivos BTLE Pulsado" );
+        this.buscarTodosLosDispositivosBTLE();
+    } // ()
+
+    // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    public void botonBuscarNuestroDispositivoBTLEPulsado( View v ) {
+        Log.d(ETIQUETA_LOG, " boton nuestro dispositivo BTLE Pulsado" );
+        //this.buscarEsteDispositivoBTLE( Utilidades.stringToUUID( "EPSG-GTI-PROY-3A" ) );
+        //this.buscarEsteDispositivoBTLE( "EPSG-GTI-PROY-3A" );
+        this.buscarEsteDispositivoBTLE( "HugoBelda" );
+
+    } // ()
+
+       /* public void boton_enviar_pulsado (View quien) {
+        Log.d(ETIQUETA_LOG, "boton_enviar_pulsado: simulando envío REST con JSON fake");
+        this.elTexto.setText("Enviando simulado...");
+
+        // Simular datos
+        String uuid = "1234-5678-9012-3456";
+        String tipo = "Temperatura";
+        int valor = 25;
+        int rssi = -60;
+
+        enviarDatos(uuid, tipo, valor, rssi);
+    } // ()*/
 } // class
 // --------------------------------------------------------------
 // --------------------------------------------------------------
-// --------------------------------------------------------------
-// --------------------------------------------------------------
+
+
