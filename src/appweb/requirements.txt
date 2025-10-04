@@ -1,2 +1,25 @@
-fastapi
-uvicorn
+# =================================================
+# Archivo: requirements.txt
+# Descripción: Dependencias de Python para la API
+# Autor: Hugo Belda Revert
+# =================================================
+
+# FastAPI framework
+fastapi==0.111.1
+
+# Cliente HTTP asíncrono para pruebas
+httpx==0.28.1
+
+# Base de datos SQLite (estándar en Python, no requiere instalación)
+# sqlite3 viene con Python 3.x
+
+# Validación de datos
+pydantic==2.7.0
+
+# Servidor ASGI
+uvicorn[standard]==0.26.1
+
+# Pytest y plugins
+pytest==8.4.2
+pytest-asyncio==1.2.0
+anyio==4.11.0
