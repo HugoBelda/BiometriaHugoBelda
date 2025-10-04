@@ -10,11 +10,16 @@
 #define PUERTO_SERIE_H_INCLUIDO
 
 // ----------------------------------------------------------
+// Clase PuertoSerie
+// Encapsula el uso del puerto serie (Serial) de Arduino para
+// simplificar la inicialización y el envío de mensajes.
 // ----------------------------------------------------------
 class PuertoSerie  {
 
 public:
   // .........................................................
+  // Constructor: inicializa el puerto serie con la velocidad
+  // de transmisión (baudios) indicada por el usuario.
   // .........................................................
   PuertoSerie (long baudios) {
 	Serial.begin( baudios );
