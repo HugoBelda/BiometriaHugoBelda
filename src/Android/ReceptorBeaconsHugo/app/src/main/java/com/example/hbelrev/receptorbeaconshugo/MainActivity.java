@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothLeScanner elEscanner;
     private ScanCallback callbackDelEscaneo = null;
     private LogicaFake logicaFake;
-    private static final String URL_SERVIDOR = "http://192.168.1.103:8000/api/guardar";  // URL del API
+    private static final String URL_SERVIDOR = "http://172.20.10.11:8000/api/guardar";  // URL del API
     // --------------------------------------------------------------
     // --------------------------------------------------------------
     private void mostrarInformacionDispositivoBTLE( ScanResult resultado ) {
