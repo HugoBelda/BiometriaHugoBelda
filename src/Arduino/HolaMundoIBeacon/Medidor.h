@@ -20,8 +20,12 @@ public:
   // .....................................................
   // constructor
   // .....................................................
-  Medidor(  ) {
-  } // ()
+  Medidor() {
+  }  // ()
+
+  void iniciarMedidor() {
+    // las cosas que no se puedan hacer en el constructor, if any
+  }  // ()
 
   // .....................................................
   // Método medirCO2()
@@ -31,8 +35,8 @@ public:
   // Devuelve un valor entero.
   // .....................................................
   int medirCO2() {
-    return 132; 
-  } // ()
+    return 132;
+  }  // ()
 
   // .....................................................
   // Método medirTemperatura()
@@ -42,10 +46,10 @@ public:
   // Devuelve la temperatura como un número entero (°C).
   // .....................................................
   int medirTemperatura() {
-    return -11; 
-  } // ()
-	
-}; // class Medidor
+    return -11;
+  }  // ()
+
+};  // class Medidor
 
 
 // ------------------------------------------------------
