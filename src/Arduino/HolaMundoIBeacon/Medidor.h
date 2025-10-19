@@ -3,6 +3,14 @@
 #ifndef MEDIDOR_H_INCLUIDO
 #define MEDIDOR_H_INCLUIDO
 
+#define PIN_GAS 28
+#define PIN_VREF 29
+
+const float SENSIBILIDAD_SENSOR = -41.26;
+const int RESOLUCION_ADC = 4096;    // ADC de 12 bits
+const float GAIN_TIA = 499.0;       // Ganancia del amplificador (Ω)
+const float TENSION_REF_MAX = 3.3;  // Voltaje máximo ADC
+
 // ------------------------------------------------------
 // Clase Medidor
 // ------------------------------------------------------
@@ -17,6 +25,10 @@ private:
 
 public:
 
+  float voltOzono = 0.0;
+  float voltRef = 0.0;
+  float concentracion = 0.0;
+
   // .....................................................
   // constructor
   // .....................................................
@@ -24,18 +36,26 @@ public:
   }  // ()
 
   void iniciarMedidor() {
-    // las cosas que no se puedan hacer en el constructor, if any
+    pinMode(PIN_GAS, INPUT);
+    pinMode(PIN_VREF, INPUT);
   }  // ()
 
   // .....................................................
   // Método medirCO2()
+  // Mide la concentración de ozono en ppm
   // .....................................................
-  // Simula una medición de concentración de CO₂.
-  // En un sistema real, leería los datos de un sensor.
-  // Devuelve un valor entero.
-  // .....................................................
-  int medirCO2() {
-    return 132;
+  float medirCO2() {
+    int lecturaOzono = analogRead(PIN_GAS);
+    int lecturaVRef = analogRead(PIN_VREF);
+
+    voltOzono = (lecturaOzono * TENSION_REF_MAX) / RESOLUCION_ADC;
+    voltRef = (lecturaVRef * TENSION_REF_MAX) / RESOLUCION_ADC;
+
+    float deltaV = voltOzono - voltRef;
+
+    concentracion = (deltaV / (GAIN_TIA * SENSIBILIDAD_SENSOR)) * 1e-6;
+
+    return concentracion;
   }  // ()
 
   // .....................................................
