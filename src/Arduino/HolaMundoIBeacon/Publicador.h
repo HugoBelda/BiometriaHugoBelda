@@ -1,3 +1,4 @@
+#include <cmath>
 // -*- mode: c++ -*-
 
 // --------------------------------------------------------------
@@ -29,9 +30,9 @@ private:
 	// ............................................................
 public:
 	EmisoraBLE laEmisora{
-		"HugoBelda",  //  nombre emisora
-		0x004c,       // fabricanteID (Apple)
-		4             // txPower
+		"EmisoraBLE",  //  nombre emisora
+		0x004c,        // fabricanteID (Apple)
+		4              // txPower
 	};
 
 	const int RSSI = -53;  // por poner algo, de momento no lo uso
@@ -65,29 +66,31 @@ public:
 	// ............................................................
 	// Método para publicar una medición de CO2
 	// ............................................................
-	void publicarCO2(int16_t valorCO2, uint8_t contador, long tiempoEspera) {
+	void publicarCO2(float_t valorCO2, uint8_t contador, long tiempoEspera) {
 
 		// 1. Preparamos el anuncio BLE tipo iBeacon
 		// 'major' codifica el tipo de medición y el número de muestra (contador)
 		uint16_t major = (MedicionesID::CO2 << 8) + contador;
+		int16_t minor = (int16_t)round(valorCO2 * 1000.0);  // puede ser negativo
+
 
 		// Emitimos el anuncio BLE con los datos de CO2
 		(*this).laEmisora.emitirAnuncioIBeacon(
 		  (*this).beaconUUID,  // UUID común a todas las mediciones
 		  major,               // Contiene tipo de medición + contador
-		  valorCO2,            // Valor medido (minor)
+		  minor,               // Valor medido (minor)
 		  (*this).RSSI         // RSSI de referencia
 		);
 
-		/*
-	Globales::elPuerto.escribir( "   publicarCO2(): valor=" );
-	Globales::elPuerto.escribir( valorCO2 );
-	Globales::elPuerto.escribir( "   contador=" );
-	Globales::elPuerto.escribir( contador );
-	Globales::elPuerto.escribir( "   todo="  );
-	Globales::elPuerto.escribir( major );
-	Globales::elPuerto.escribir( "\n" );
-	*/
+
+		Globales::elPuerto.escribir("   publicarCO2(): valor=");
+		Globales::elPuerto.escribir(valorCO2);
+		Globales::elPuerto.escribir("   contador=");
+		Globales::elPuerto.escribir(contador);
+		Globales::elPuerto.escribir("   todo=");
+		Globales::elPuerto.escribir(major);
+		Globales::elPuerto.escribir("\n");
+
 
 		//
 		// 2. esperamos el tiempo que nos digan

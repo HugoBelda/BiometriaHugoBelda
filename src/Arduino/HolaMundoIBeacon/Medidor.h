@@ -6,10 +6,10 @@
 #define PIN_GAS 28
 #define PIN_VREF 29
 
-const float SENSIBILIDAD_SENSOR = -41.26;
-const int RESOLUCION_ADC = 4096;    // ADC de 12 bits
-const float GAIN_TIA = 499.0;       // Ganancia del amplificador (Ω)
-const float TENSION_REF_MAX = 3.3;  // Voltaje máximo ADC
+const float SENSIBILIDAD_SENSOR = -44.75;  //Sensibilidad definida en el qr del fabricante
+const int RESOLUCION_ADC = 4096;           // ADC de 12 bits
+const float GAIN_TIA = 499.0;              // Ganancia del amplificador (Ω)
+const float TENSION_REF_MAX = 3.3;         // Voltaje máximo ADC
 
 // ------------------------------------------------------
 // Clase Medidor
@@ -45,15 +45,22 @@ public:
   // Mide la concentración de ozono en ppm
   // .....................................................
   float medirCO2() {
-    int lecturaOzono = analogRead(PIN_GAS);
-    int lecturaVRef = analogRead(PIN_VREF);
+    int lecturaOzono = analogRead(PIN_GAS);  
+    int lecturaVRef = analogRead(PIN_VREF); 
 
+    // Convertir las lecturas a voltaje real
     voltOzono = (lecturaOzono * TENSION_REF_MAX) / RESOLUCION_ADC;
     voltRef = (lecturaVRef * TENSION_REF_MAX) / RESOLUCION_ADC;
 
+    //Calcular diferencia de voltaje
     float deltaV = voltOzono - voltRef;
 
-    concentracion = (deltaV / (GAIN_TIA * SENSIBILIDAD_SENSOR)) * 1e-6;
+    // Serial.print("Diferencia ΔV = ");
+    // Serial.print(deltaV * 1000, 3);
+    // Serial.println(" mV");
+
+    //Calcular concentración (ppm)
+    concentracion = (deltaV / (GAIN_TIA * SENSIBILIDAD_SENSOR)) * 1e6;
 
     return concentracion;
   }  // ()
