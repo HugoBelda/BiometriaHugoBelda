@@ -64,7 +64,7 @@ void inicializarPlaquita () {
 // --------------------------------------------------------------
 void setup() {
 
-  Globales::elPuerto.esperarDisponible();
+ // Globales::elPuerto.esperarDisponible();
 
   // 
   // 

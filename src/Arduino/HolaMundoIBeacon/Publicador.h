@@ -30,7 +30,7 @@ private:
 	// ............................................................
 public:
 	EmisoraBLE laEmisora{
-		"EmisoraBLE",  //  nombre emisora
+		"Grupo2PBIO",  //  nombre emisora
 		0x004c,        // fabricanteID (Apple)
 		4              // txPower
 	};
